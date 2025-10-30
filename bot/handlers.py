@@ -9,7 +9,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
-downloader = DiskWalaDownloader(api_key=DISKWALA_API_KEY)
+downloader = DiskWalaDownloader(api_key=DISKWALA_API_KEY if DISKWALA_API_KEY else None)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
@@ -35,14 +35,14 @@ Main aapki madad karunga DiskWala se videos download karne mein.
 
 Chalo shuru karte hain! Link bhejiye 🚀
 """
-    
+
     keyboard = [
         [InlineKeyboardButton("📖 Help", callback_data='help'),
          InlineKeyboardButton("ℹ️ About", callback_data='about')],
         [InlineKeyboardButton("📢 Support Channel", url='https://t.me/DiskwalaTeam')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
+
     await update.message.reply_text(
         welcome_message,
         parse_mode=ParseMode.MARKDOWN,
@@ -80,7 +80,11 @@ Contact: @DiskwalaTeam
 
 Enjoy! 🎉
 """
-    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    
+    if update.message:
+        await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    elif update.callback_query:
+        await update.callback_query.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
 
 async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /about command"""
@@ -92,7 +96,7 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 **Language:** Python 🐍
 
 **Purpose:**
-Ye bot DiskWala platform se videos download karne ke liye banaya gaya hai. 
+Ye bot DiskWala platform se videos download karne ke liye banaya gaya hai.
 
 **Technology Stack:**
 • Python 3.11
@@ -108,13 +112,17 @@ Kisi bhi problem ke liye @DiskwalaTeam se contact karein.
 
 Made with ❤️ in India 🇮🇳
 """
-    await update.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)
+    
+    if update.message:
+        await update.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)
+    elif update.callback_query:
+        await update.callback_query.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle button callbacks"""
     query = update.callback_query
     await query.answer()
-    
+
     if query.data == 'help':
         await help_command(update, context)
     elif query.data == 'about':
@@ -126,7 +134,7 @@ def is_diskwala_link(text):
         r'https?://(?:www\.)?diskwala\.com/app/[a-zA-Z0-9]+',
         r'https?://(?:www\.)?diskwala\.com/file/[a-zA-Z0-9]+',
     ]
-    
+
     for pattern in patterns:
         if re.search(pattern, text):
             return True
@@ -138,7 +146,7 @@ def extract_diskwala_link(text):
         r'https?://(?:www\.)?diskwala\.com/app/[a-zA-Z0-9]+',
         r'https?://(?:www\.)?diskwala\.com/file/[a-zA-Z0-9]+',
     ]
-    
+
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
@@ -149,7 +157,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming messages"""
     message = update.message
     text = message.text
-    
+
     if not is_diskwala_link(text):
         await message.reply_text(
             "❌ **Invalid Link!**\n\n"
@@ -159,23 +167,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.MARKDOWN
         )
         return
-    
+
     diskwala_url = extract_diskwala_link(text)
     logger.info(f"Processing DiskWala URL: {diskwala_url} from user {message.from_user.id}")
-    
+
     await message.chat.send_action(ChatAction.TYPING)
-    
+
     status_msg = await message.reply_text(
         "🔍 **Processing...**\n\n"
         "Video information nikal raha hoon...",
         parse_mode=ParseMode.MARKDOWN
     )
-    
+
     output_path = None
-    
+
     try:
         video_info = downloader.get_video_info(diskwala_url)
-        
+
         if not video_info:
             await status_msg.edit_text(
                 "❌ **Error!**\n\n"
@@ -183,21 +191,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.MARKDOWN
             )
             return
-        
+
         await status_msg.edit_text(
             f"📥 **Downloading...**\n\n"
             f"**Title:** {video_info['title']}\n"
             f"Please wait...",
             parse_mode=ParseMode.MARKDOWN
         )
-        
+
         await message.chat.send_action(ChatAction.RECORD_VIDEO)
-        
+
         os.makedirs(DOWNLOAD_DIR, exist_ok=True)
         output_path = os.path.join(DOWNLOAD_DIR, f"{video_info['file_id']}.mp4")
-        
+
         download_url = downloader.get_download_link(diskwala_url)
-        
+
         if not download_url:
             await status_msg.edit_text(
                 "⚠️ **Download Link Nahi Mila**\n\n"
@@ -209,9 +217,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.MARKDOWN
             )
             return
-        
+
         success = downloader.download_video(diskwala_url, output_path)
-        
+
         if not success or not os.path.exists(output_path):
             await status_msg.edit_text(
                 "❌ **Download Failed!**\n\n"
@@ -219,9 +227,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.MARKDOWN
             )
             return
-        
+
         file_size = os.path.getsize(output_path)
-        
+
         if file_size > MAX_FILE_SIZE:
             await status_msg.edit_text(
                 f"❌ **File Too Large!**\n\n"
@@ -230,54 +238,74 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Ye file Telegram upload limit se zyada hai.",
                 parse_mode=ParseMode.MARKDOWN
             )
-            os.remove(output_path)
+            try:
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                    logger.info(f"Removed oversized file: {output_path}")
+            except OSError as e:
+                logger.warning(f"Failed to remove oversized file: {e}")
             return
-        
+
         await status_msg.edit_text(
             "📤 **Uploading to Telegram...**\n\n"
             "Please wait, uploading video...",
             parse_mode=ParseMode.MARKDOWN
         )
-        
+
         await message.chat.send_action(ChatAction.UPLOAD_VIDEO)
-        
+
         with open(output_path, 'rb') as video_file:
             caption = f"🎬 **{video_info['title']}**\n\n📊 Size: {file_size / (1024*1024):.1f} MB\n\n✅ Downloaded by DiskWala Downloader Bot"
-            
+
             await message.reply_video(
                 video=video_file,
                 caption=caption,
                 parse_mode=ParseMode.MARKDOWN,
-                supports_streaming=True
+                supports_streaming=True,
+                read_timeout=300,
+                write_timeout=300
             )
-        
+
         await status_msg.delete()
-        
-        os.remove(output_path)
+
+        try:
+            if os.path.exists(output_path):
+                os.remove(output_path)
+                logger.info(f"Successfully removed temporary file: {output_path}")
+        except OSError as e:
+            logger.warning(f"Failed to remove temporary file {output_path}: {e}")
+
         logger.info(f"Successfully processed and sent video to user {message.from_user.id}")
-        
+
     except Exception as e:
         logger.error(f"Error processing video: {e}", exc_info=True)
-        await status_msg.edit_text(
-            f"❌ **Error Occurred!**\n\n"
-            f"Kuch galat ho gaya:\n`{str(e)}`\n\n"
-            f"Please try again ya Support se contact karein.",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        
+        try:
+            await status_msg.edit_text(
+                f"❌ **Error Occurred!**\n\n"
+                f"Kuch galat ho gaya:\n`{str(e)[:100]}`\n\n"
+                f"Please try again ya Support se contact karein.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as edit_error:
+            logger.error(f"Failed to edit status message: {edit_error}")
+
         if output_path and os.path.exists(output_path):
             try:
                 os.remove(output_path)
-            except:
-                pass
+                logger.info(f"Cleaned up file after error: {output_path}")
+            except OSError as cleanup_error:
+                logger.warning(f"Failed to cleanup file {output_path}: {cleanup_error}")
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle errors"""
     logger.error(f"Update {update} caused error {context.error}", exc_info=context.error)
-    
+
     if update and update.effective_message:
-        await update.effective_message.reply_text(
-            "❌ **An error occurred!**\n\n"
-            "Please try again or contact support.",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        try:
+            await update.effective_message.reply_text(
+                "❌ **An error occurred!**\n\n"
+                "Please try again or contact support.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            logger.error(f"Failed to send error message to user: {e}")
