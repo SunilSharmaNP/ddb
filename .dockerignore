@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.example
+*.pyc
+__pycache__
+.pythonlibs
+downloads/
+bot.log
+*.log
+.cache
+.local
+.upm
+.replit
+README.md
