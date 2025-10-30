@@ -17,6 +17,13 @@ RUN pip install --no-cache-dir uv && \
 
 COPY . .
 
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+
 RUN mkdir -p /app/downloads && \
     chmod 755 /app/downloads
 
