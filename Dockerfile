@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
+
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
 COPY pyproject.toml .
 
 RUN pip install --no-cache-dir uv && \
