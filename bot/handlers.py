@@ -4,12 +4,12 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction
 from utils.diskwala import DiskWalaDownloader
-from config.settings import DISKWALA_API_KEY, DOWNLOAD_DIR, MAX_FILE_SIZE
+from config.settings import DOWNLOAD_DIR, MAX_FILE_SIZE
 import re
 
 logger = logging.getLogger(__name__)
 
-downloader = DiskWalaDownloader(api_key=DISKWALA_API_KEY if DISKWALA_API_KEY else None)
+downloader = DiskWalaDownloader()
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
