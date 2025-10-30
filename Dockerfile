@@ -2,10 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
+RUN apt-get update && apt-get install -y \\
+    libnss3 \\
+    libatk-bridge2.0-0 \\
+    libdrm2 \\
+    libxkbcommon0 \\
+    libgbm1 \\
+    libasound2
 
 RUN playwright install chromium
 RUN playwright install-deps chromium
