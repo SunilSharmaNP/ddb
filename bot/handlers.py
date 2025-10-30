@@ -204,7 +204,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         os.makedirs(DOWNLOAD_DIR, exist_ok=True)
         output_path = os.path.join(DOWNLOAD_DIR, f"{video_info['file_id']}.mp4")
 
-        download_url = downloader.get_download_link(diskwala_url)
+        download_url = await downloader.get_download_link(diskwala_url)
 
         if not download_url:
             await status_msg.edit_text(
@@ -218,7 +218,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        success = downloader.download_video(diskwala_url, output_path)
+        # Pass the already-extracted download_url to avoid redundant extraction
+        success = downloader.download_video(diskwala_url, output_path, download_url=download_url)
 
         if not success or not os.path.exists(output_path):
             await status_msg.edit_text(
