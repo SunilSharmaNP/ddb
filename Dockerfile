@@ -22,7 +22,6 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
-COPY pyproject.toml .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
